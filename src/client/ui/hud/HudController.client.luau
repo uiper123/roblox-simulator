@@ -55,7 +55,7 @@ local function createHUD()
 	-- Детектор расположен вертикально прямо НАД док-панелью кнопок
 	detector = DetectorWidget.create({
 		Parent = screenGui,
-		Position = UDim2.new(0, 20, 0.5, -205)
+		Position = UDim2.new(0, 20, 0.5, -241)
 	})
 
 	bag = BagWidget.create({
@@ -78,13 +78,13 @@ local function createHUD()
 	-- ==========================================
 	local dock = Instance.new("Frame")
 	dock.Name = "Dock"
-	dock.Size = UDim2.new(0, 118, 0, 246)
-	dock.Position = UDim2.new(0, 20, 0.5, -123)
+	dock.Size = UDim2.new(0, 154, 0, 318)
+	dock.Position = UDim2.new(0, 20, 0.5, -159)
 	dock.BackgroundTransparency = 1
 	dock.Parent = screenGui
 
 	local gridLayout = Instance.new("UIGridLayout")
-	gridLayout.CellSize = UDim2.new(0, 54, 0, 54)
+	gridLayout.CellSize = UDim2.new(0, 72, 0, 72)
 	gridLayout.CellPadding = UDim2.new(0, 10, 0, 10)
 	gridLayout.FillDirectionMaxCells = 2
 	gridLayout.StartCorner = Enum.StartCorner.TopLeft
@@ -105,8 +105,9 @@ local function createHUD()
 		local btn = Button.create({
 			Text = item.Text,
 			Color = item.Color,
-			Size = UDim2.new(0, 95, 0, 44),
-			TextSize = 11,
+			Size = UDim2.new(0, 72, 0, 72),
+			TextSize = 34,
+			CornerRadius = UDim.new(0.5, 0), -- Идеальный круглый 3D-дизайн
 			Parent = dock,
 			OnClick = function()
 				UIManager.openWindow(item.Name)
