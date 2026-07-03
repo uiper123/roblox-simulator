@@ -34,7 +34,7 @@ local Theme = {
 
 	-- Общие параметры дизайна
 	Sizes = {
-		BorderWidth = 2,
+		BorderWidth = 3.5,
 		CornerRadius = UDim.new(0, 8),
 		PanelCornerRadius = UDim.new(0, 16)
 	},

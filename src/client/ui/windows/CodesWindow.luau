@@ -1,4 +1,4 @@
--- Окно ввода Промо-кодов (CodesWindow)
+-- Окно ввода Промо-кодов (CodesWindow) - Премиум-редизайн под референс
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -14,14 +14,16 @@ local redeemCodeEvent = Remotes.getEvent("RedeemCode")
 
 local CodesWindow = {}
 local codesPanel = nil
+local textBox = nil
+local submitBtnComp = nil
 
 function CodesWindow.init()
 	local screenGui = UIManager.getScreenGui()
 
 	codesPanel = Panel.create({
-		Title = "ПРОМОКОДЫ",
-		Size = UDim2.new(0, 340, 0, 220),
-		Position = UDim2.new(0.5, -170, 0.5, -110),
+		Title = "АКТИВАЦИЯ КОДОВ",
+		Size = UDim2.new(0, 380, 0, 240),
+		Position = UDim2.new(0.5, -190, 0.5, -120),
 		Parent = screenGui,
 		OnClose = function()
 			codesPanel.Close()
@@ -30,55 +32,70 @@ function CodesWindow.init()
 
 	UIManager.registerWindow("Codes", codesPanel)
 
-	local promoDesc = Instance.new("TextLabel")
-	promoDesc.Size = UDim2.new(1, -40, 0, 40)
-	promoDesc.Position = UDim2.new(0, 20, 0, 15)
-	promoDesc.BackgroundTransparency = 1
-	promoDesc.Font = Theme.Fonts.Body
-	promoDesc.TextSize = 13
-	promoDesc.TextColor3 = Theme.Colors.TextSecondary
-	promoDesc.TextWrapped = true
-	promoDesc.Text = "Введите действующий промокод, чтобы получить награду:"
-	promoDesc.Parent = codesPanel.Content
+	local container = Instance.new("Frame")
+	container.Size = UDim2.new(1, -20, 1, -20)
+	container.Position = UDim2.new(0, 10, 0, 10)
+	container.BackgroundTransparency = 1
+	container.Parent = codesPanel.Content
 
-	local codeBox = Instance.new("TextBox")
-	codeBox.Name = "CodeTextBox"
-	codeBox.Size = UDim2.new(0, 260, 0, 40)
-	codeBox.Position = UDim2.new(0.5, -130, 0.35, 10)
-	codeBox.BackgroundColor3 = Theme.Colors.BackgroundSecondary
-	codeBox.BorderSizePixel = 0
-	codeBox.Font = Theme.Fonts.Title
-	codeBox.TextSize = 16
-	codeBox.TextColor3 = Theme.Colors.Text
-	codeBox.PlaceholderColor3 = Theme.Colors.TextSecondary
-	codeBox.PlaceholderText = "ВВЕДИТЕ КОД..."
-	codeBox.Text = ""
-	codeBox.ClearTextOnFocus = false
-	codeBox.Parent = codesPanel.Content
+	local listLayout = Instance.new("UIListLayout")
+	listLayout.Padding = UDim.new(0, 14)
+	listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	listLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	listLayout.Parent = container
 
-	local boxCorner = Instance.new("UICorner")
-	boxCorner.CornerRadius = Theme.Sizes.CornerRadius
-	boxCorner.Parent = codeBox
+	local infoLabel = Instance.new("TextLabel")
+	infoLabel.Size = UDim2.new(1, -20, 0, 36)
+	infoLabel.BackgroundTransparency = 1
+	infoLabel.Font = Theme.Fonts.Title
+	infoLabel.TextSize = 13
+	infoLabel.TextColor3 = Theme.Colors.TextSecondary
+	infoLabel.TextWrapped = true
+	infoLabel.Text = "Введите секретный код группы или соцсетей, чтобы получить ценные бонусы!"
+	infoLabel.Parent = container
 
-	local boxStroke = Instance.new("UIStroke")
-	boxStroke.Thickness = Theme.Sizes.BorderWidth - 1
-	boxStroke.Color = Theme.Colors.Stroke
-	boxStroke.Parent = codeBox
+	-- Красивое поле ввода кода
+	local textBoxBg = Instance.new("Frame")
+	textBoxBg.Name = "TextBoxBg"
+	textBoxBg.Size = UDim2.new(1, -20, 0, 44)
+	textBoxBg.BackgroundColor3 = Theme.Colors.BackgroundSecondary
+	textBoxBg.BorderSizePixel = 0
+	textBoxBg.Parent = container
 
-	local redeemButton = Button.create({
+	local bgCorner = Instance.new("UICorner")
+	bgCorner.CornerRadius = Theme.Sizes.CornerRadius
+	bgCorner.Parent = textBoxBg
+
+	local bgStroke = Instance.new("UIStroke")
+	bgStroke.Thickness = Theme.Sizes.BorderWidth
+	bgStroke.Color = Theme.Colors.Stroke
+	bgStroke.Parent = textBoxBg
+
+	textBox = Instance.new("TextBox")
+	textBox.Size = UDim2.new(1, -20, 1, 0)
+	textBox.Position = UDim2.new(0, 10, 0, 0)
+	textBox.BackgroundTransparency = 1
+	textBox.Font = Theme.Fonts.Title
+	textBox.TextSize = 16
+	textBox.TextColor3 = Theme.Colors.Neon
+	textBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 130)
+	textBox.PlaceholderText = "ВВЕДИТЕ КОД..."
+	textBox.Text = ""
+	textBox.ClearTextOnFocus = true
+	textBox.Parent = textBoxBg
+
+	submitBtnComp = Button.create({
 		Text = "АКТИВИРОВАТЬ",
-		Color = Theme.Colors.Accent,
-		Size = UDim2.new(0, 160, 0, 40),
-		Position = UDim2.new(0.5, -80, 0.65, 15),
-		Parent = codesPanel.Content,
+		Color = Theme.Colors.Success,
+		Size = UDim2.new(1, -20, 0, 46),
+		Parent = container,
 		OnClick = function()
-			local text = codeBox.Text
-			if text ~= "" then
-				redeemCodeEvent:FireServer(text)
-				codeBox.Text = ""
-				codesPanel.Close()
+			local code = textBox.Text
+			if code ~= "" then
+				redeemCodeEvent:FireServer(code)
+				textBox.Text = ""
 			else
-				UIManager.ShowToast("Введите код перед отправкой!", "Warning")
+				UIManager.ShowToast("Сначала введите код!", "Error")
 			end
 		end
 	})
