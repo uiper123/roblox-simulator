@@ -24,6 +24,19 @@ local valueLabel = nil
 local sellButtonComponent = nil
 local lastInventory = {}
 
+-- Функция для определения редкости экипированного призрака
+local function getEquippedGhostRarity()
+	local char = player.Character
+	if char then
+		for _, child in ipairs(char:GetChildren()) do
+			if child:IsA("Tool") and child:GetAttribute("IsGhost") then
+				return child:GetAttribute("Rarity")
+			end
+		end
+	end
+	return nil
+end
+
 local function renderInventoryUI()
 	if not scrollFrame then return end
 
@@ -46,6 +59,9 @@ local function renderInventoryUI()
 
 	valueLabel.Text = string.format("Общая ценность рюкзака: $%d", totalValue)
 
+	-- Получаем текущий надетый тип призрака
+	local equippedRarity = getEquippedGhostRarity()
+
 	for rarity, count in pairs(counts) do
 		local conf = GhostConfig[rarity]
 		if not conf then continue end
@@ -55,12 +71,45 @@ local function renderInventoryUI()
 		cardWrapper.BackgroundTransparency = 1
 		cardWrapper.Parent = scrollFrame
 
+		local isCurrentlyEquipped = (equippedRarity == rarity)
+
 		local card = ItemCard.create({
 			Title = rarity:upper(),
 			Rarity = rarity,
 			IconColor = conf.Color,
 			Subtext = string.format("Кол-во: x%d", count),
-			Parent = cardWrapper
+			Equipped = isCurrentlyEquipped, -- Передаем статус экипировки в карточку
+			Parent = cardWrapper,
+			OnClick = function()
+				local char = player.Character
+				local hum = char and char:FindFirstChildOfClass("Humanoid")
+				if not hum then return end
+
+				if isCurrentlyEquipped then
+					-- Снимаем призрака (убираем инструмент)
+					hum:UnequipTools()
+				else
+					-- Ищем инструмент этого призрака в рюкзаке
+					local backpack = player:FindFirstChild("Backpack")
+					if backpack then
+						local tool = nil
+						for _, child in ipairs(backpack:GetChildren()) do
+							if child:IsA("Tool") and child:GetAttribute("IsGhost") and child:GetAttribute("Rarity") == rarity then
+								tool = child
+								break
+							end
+						end
+						if tool then
+							-- Сначала убираем другие инструменты
+							hum:UnequipTools()
+							-- Экипируем призрака
+							hum:EquipTool(tool)
+						end
+					end
+				end
+				-- Мгновенно перерисовываем UI для обновления подсветки карточек
+				renderInventoryUI()
+			end
 		})
 	end
 
@@ -99,6 +148,13 @@ function InventoryWindow.init()
 			inventoryPanel.Close()
 		end
 	})
+
+	-- Переопределяем метод Open, чтобы обновлять UI и статус экипированных призраков при открытии
+	local originalOpen = inventoryPanel.Open
+	function inventoryPanel.Open()
+		originalOpen()
+		renderInventoryUI()
+	end
 
 	UIManager.registerWindow("Inventory", inventoryPanel)
 
@@ -141,6 +197,28 @@ function InventoryWindow.init()
 		lastInventory = inventory
 		renderInventoryUI()
 	end)
+
+	-- Динамическое обновление UI при экипировке/разэкипировке через внешние события или хотбар
+	local charConnection = nil
+	local function setupCharacterListeners(char)
+		if charConnection then charConnection:Disconnect() end
+		charConnection = char.ChildAdded:Connect(function(child)
+			if child:IsA("Tool") and child:GetAttribute("IsGhost") then
+				task.defer(renderInventoryUI)
+			end
+		end)
+		
+		char.ChildRemoved:Connect(function(child)
+			if child:IsA("Tool") and child:GetAttribute("IsGhost") then
+				task.defer(renderInventoryUI)
+			end
+		end)
+	end
+
+	player.CharacterAdded:Connect(setupCharacterListeners)
+	if player.Character then
+		setupCharacterListeners(player.Character)
+	end
 
 	task.spawn(function()
 		while true do

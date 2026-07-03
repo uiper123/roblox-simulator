@@ -45,7 +45,7 @@ local function createHUD()
 	crystalChip = CurrencyChip.create({
 		CurrencyType = "Crystals",
 		Size = UDim2.new(0, 130, 0, 40),
-		Position = UDim2.new(0, 175, 1, -55),
+		Position = UDim2.new(0, 20, 1, -100),
 		Parent = screenGui
 	})
 

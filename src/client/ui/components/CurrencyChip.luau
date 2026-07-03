@@ -77,30 +77,37 @@ function CurrencyChipFactory.create(options)
 	local api = {}
 	api.Instance = container
 
-	-- Плавное прокручивание счета (Count-up animation)
+	-- Плавное прокручивание счета (Count-up animation) с улучшенными анимациями
 	function api.SetValue(newValue: number)
 		local diff = newValue - currentValue
 		if diff == 0 then return end
 
-		-- Если баланс увеличился, рисуем эффект "+N"
-		if diff > 0 and currentValue > 0 then
+		-- Если баланс изменился, рисуем эффект "+N" или "-N"
+		if currentValue > 0 then
 			task.spawn(function()
 				local deltaLabel = Instance.new("TextLabel")
 				deltaLabel.Name = "DeltaLabel"
-				deltaLabel.Size = UDim2.new(0, 80, 0, 20)
-				deltaLabel.Position = UDim2.new(0.5, 0, 0, -25)
+				deltaLabel.Size = UDim2.new(0, 100, 0, 20)
+				deltaLabel.Position = UDim2.new(0.5, -50, 0, -25)
 				deltaLabel.BackgroundTransparency = 1
 				deltaLabel.Font = Theme.Fonts.Title
-				deltaLabel.TextSize = 15
-				deltaLabel.TextColor3 = (currencyType == "Money") and Theme.Colors.Success or Theme.Colors.Neon
-				deltaLabel.TextStrokeTransparency = 0.5
+				deltaLabel.TextSize = 18
+				deltaLabel.TextStrokeTransparency = 0.3
 				deltaLabel.TextStrokeColor3 = Theme.Colors.Stroke
-				deltaLabel.Text = "+" .. formatNumber(diff)
+				
+				if diff > 0 then
+					deltaLabel.TextColor3 = (currencyType == "Money") and Theme.Colors.Success or Theme.Colors.Neon
+					deltaLabel.Text = "+" .. formatNumber(diff)
+				else
+					deltaLabel.TextColor3 = Theme.Colors.Error or Color3.fromRGB(255, 75, 75)
+					deltaLabel.Text = "-" .. formatNumber(math.abs(diff))
+				end
+				
 				deltaLabel.Parent = container
 
 				-- Анимация взлета и растворения дельты
-				local upTween = TweenService:Create(deltaLabel, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-					Position = UDim2.new(0.5, 0, 0, -50),
+				local upTween = TweenService:Create(deltaLabel, TweenInfo.new(1.0, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+					Position = UDim2.new(0.5, -50, 0, -55),
 					TextTransparency = 1,
 					TextStrokeTransparency = 1
 				})
@@ -108,10 +115,34 @@ function CurrencyChipFactory.create(options)
 				upTween.Completed:Connect(function()
 					deltaLabel:Destroy()
 				end)
+
+				-- Анимация самого контейнера (фишки)
+				if diff < 0 then
+					-- Эффект тряски при покупке (уменьшении баланса)
+					local originalPos = container.Position
+					task.spawn(function()
+						for i = 1, 6 do
+							local offset = (i % 2 == 0) and 3 or -3
+							container.Position = originalPos + UDim2.new(0, offset, 0, 0)
+							task.wait(0.04)
+						end
+						container.Position = originalPos
+					end)
+				else
+					-- Эффект пульсации при продаже (увеличении баланса)
+					local originalSize = container.Size
+					local originalPos = container.Position
+					local bounceInfo = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true)
+					local bounceTween = TweenService:Create(container, bounceInfo, {
+						Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset + 12, originalSize.Y.Scale, originalSize.Y.Offset + 6),
+						Position = originalPos + UDim2.new(0, -6, 0, -3)
+					})
+					bounceTween:Play()
+				end
 			end)
 		end
 
-		-- Анимация накрутки цифр вверх
+		-- Анимация накрутки цифр вверх/вниз
 		local duration = 0.5
 		local startTime = tick()
 		local startVal = currentValue
