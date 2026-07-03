@@ -108,10 +108,15 @@ function SellService.onSellTriggered(player: Player)
 		end
 	end
 
-	-- Получаем и применяем множитель питомцев
+	-- Получаем и применяем множители питомцев и перерождений
 	local PetService = require(ServerScriptService.Server.PetService)
-	local multiplier = PetService.getMultiplier(player)
-	local finalEarnings = math.floor(totalEarnings * multiplier)
+	local RebirthService = require(ServerScriptService.Server.RebirthService)
+	
+	local petMult = PetService.getMultiplier(player)
+	local rebirthMult = RebirthService.getMultiplier(player)
+	local combinedMultiplier = petMult * rebirthMult
+	
+	local finalEarnings = math.floor(totalEarnings * combinedMultiplier)
 
 	-- 4. Начисляем монеты
 	if finalEarnings > 0 then
@@ -120,8 +125,8 @@ function SellService.onSellTriggered(player: Player)
 		-- Уведомляем клиента о успешной продаже
 		local notificationEvent = Remotes.getEvent("ShowNotification")
 		local msg = string.format("Продано призраков: %d. Получено: +%d Монет", #caughtGhosts, finalEarnings)
-		if multiplier > 1.0 then
-			msg = msg .. string.format(" (Множитель: x%.1f)", multiplier)
+		if combinedMultiplier > 1.0 then
+			msg = msg .. string.format(" (Множитель: x%.1f)", combinedMultiplier)
 		end
 		notificationEvent:FireClient(player, msg)
 		

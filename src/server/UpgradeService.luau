@@ -136,6 +136,36 @@ function UpgradeService.onBuyUpgradeRequest(player: Player, upgradeType: string)
 	end
 end
 
+-- Сброс всех апгрейдов игрока до уровня 1 (при перерождении)
+function UpgradeService.resetPlayer(player: Player)
+	local userId = player.UserId
+	local upgrades = playerUpgrades[userId]
+	if not upgrades then return end
+
+	upgrades.BagCapacity = 1
+	upgrades.WalkSpeed = 1
+	upgrades.DetectorRadius = 1
+	upgrades.CaptureSpeed = 1
+
+	player:SetAttribute("BagCapacityLvl", 1)
+	player:SetAttribute("WalkSpeedLvl", 1)
+	player:SetAttribute("DetectorRadiusLvl", 1)
+	player:SetAttribute("CaptureSpeedLvl", 1)
+
+	-- Сброс физической скорости бега
+	applyWalkSpeed(player, 1)
+
+	-- Сброс вместимости сумки
+	local initialCapacity = UpgradeConfig.BagCapacity.Levels[1].Value
+	InventoryService.setMaxCapacity(player, initialCapacity)
+
+	-- Синхронизируем сброшенный пустой инвентарь
+	local inventoryUpdateEvent = Remotes.getEvent("InventoryUpdate")
+	inventoryUpdateEvent:FireClient(player, InventoryService.getInventory(player))
+	
+	print("[UPGRADE SERVICE] Апгрейды сброшены до Ур. 1 для игрока " .. player.Name)
+end
+
 -- Очистка памяти при выходе игрока
 function UpgradeService.removePlayer(player: Player)
 	playerUpgrades[player.UserId] = nil

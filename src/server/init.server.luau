@@ -17,6 +17,7 @@ local LeaderboardService = require(ServerScriptService.Server.LeaderboardService
 local GhostBehaviorService = require(ServerScriptService.Server.GhostBehaviorService)
 local LocationService = require(ServerScriptService.Server.LocationService)
 local PetService = require(ServerScriptService.Server.PetService)
+local RebirthService = require(ServerScriptService.Server.RebirthService)
 
 print("Server started")
 
@@ -87,6 +88,9 @@ local function init()
 	-- Инициализация логики питомцев
 	PetService.init()
 	
+	-- Инициализация перерождений
+	RebirthService.init()
+	
 	-- Запуск сервиса поимки
 	CaptureService.init()
 	
@@ -106,6 +110,9 @@ local function init()
 		
 		-- Инициализируем питомцев
 		PetService.setupPlayer(player, loadedData and loadedData.Pets)
+		
+		-- Инициализируем перерождения
+		RebirthService.setupPlayer(player, loadedData and loadedData.Rebirths)
 
 		-- Инициализируем разблокированные локации
 		local forestUnlocked = false
@@ -148,6 +155,7 @@ local function init()
 		CurrencyService.removePlayer(player)
 		UpgradeService.removePlayer(player)
 		PetService.removePlayer(player)
+		RebirthService.removePlayer(player)
 	end)
 end
 

@@ -8,32 +8,34 @@ local player = Players.LocalPlayer
 -- Папка с локациями
 local locationsFolder = Workspace:WaitForChild("Locations", 15)
 
--- Вспомогательная функция для плавного исчезновения барьера
-local function disableBarrier(barrierName: string)
+-- Вспомогательная функция для плавного управления барьером (открытие/закрытие)
+local function updateBarrierState(zoneName: string, isUnlocked: boolean)
 	if not locationsFolder then return end
+	local barrierName = "Barrier_" .. zoneName
 	local barrier = locationsFolder:WaitForChild(barrierName, 5)
 	if not barrier or not barrier:IsA("BasePart") then return end
 
-	-- Выключаем коллизию сразу
-	barrier.CanCollide = false
-
-	-- Плавно убираем видимость барьера (эффект силового поля растворяется)
-	local tweenInfo = TweenInfo.new(1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-	local tween = TweenService:Create(barrier, tweenInfo, {Transparency = 1})
-	tween:Play()
-	
-	print("[LOCATION CLIENT] Локальный барьер разблокирован: " .. barrierName)
+	if isUnlocked then
+		barrier.CanCollide = false
+		local tweenInfo = TweenInfo.new(1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		local tween = TweenService:Create(barrier, tweenInfo, {Transparency = 1})
+		tween:Play()
+		print("[LOCATION CLIENT] Локальный барьер открыт: " .. barrierName)
+	else
+		barrier.CanCollide = true
+		local tweenInfo = TweenInfo.new(1.0, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		local tween = TweenService:Create(barrier, tweenInfo, {Transparency = 0.5})
+		tween:Play()
+		print("[LOCATION CLIENT] Локальный барьер закрыт: " .. barrierName)
+	end
 end
 
 -- Настройка отслеживания разблокировок зон
 local function setupLocationListeners()
 	local function checkZone(zoneName: string)
 		local attrName = "Unlocked_" .. zoneName
-		local isUnlocked = player:GetAttribute(attrName)
-		
-		if isUnlocked == true then
-			disableBarrier("Barrier_" .. zoneName)
-		end
+		local isUnlocked = player:GetAttribute(attrName) == true
+		updateBarrierState(zoneName, isUnlocked)
 	end
 
 	-- Слушаем изменения статусов разблокировок
