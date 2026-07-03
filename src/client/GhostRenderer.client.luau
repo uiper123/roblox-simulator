@@ -35,6 +35,69 @@ local function renderGhost(entity: Folder)
 	ghostPart:SetAttribute("Rarity", rarityId)
 	ghostPart:SetAttribute("Value", entity:GetAttribute("Value"))
 
+	-- Создаем надпись над призраком (Имя, Редкость)
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "GhostLabel"
+	billboard.Size = UDim2.new(0, 160, 0, 50)
+	billboard.StudsOffset = Vector3.new(0, 2.8, 0)
+	billboard.AlwaysOnTop = true
+	billboard.Parent = ghostPart
+
+	local container = Instance.new("Frame")
+	container.Size = UDim2.new(1, 0, 1, 0)
+	container.BackgroundTransparency = 1
+	container.Parent = billboard
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(1, 0, 0.6, 0)
+	nameLabel.Position = UDim2.new(0, 0, 0, 0)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.Font = Enum.Font.FredokaOne
+	nameLabel.TextSize = 16
+	nameLabel.TextColor3 = info.Color
+	nameLabel.Text = info.Name
+	nameLabel.TextStrokeTransparency = 0
+	nameLabel.TextStrokeColor3 = Color3.fromRGB(13, 14, 26)
+	nameLabel.Parent = container
+
+	local rarityLabel = Instance.new("TextLabel")
+	rarityLabel.Size = UDim2.new(1, 0, 0.4, 0)
+	rarityLabel.Position = UDim2.new(0, 0, 0.6, 0)
+	rarityLabel.BackgroundTransparency = 1
+	rarityLabel.Font = Enum.Font.GothamBold
+	rarityLabel.TextSize = 11
+	rarityLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+
+	local rarityText = "ОБЫЧНЫЙ"
+	if rarityId == "Uncommon" then rarityText = "НЕОБЫЧНЫЙ"
+	elseif rarityId == "Rare" then rarityText = "РЕДКИЙ"
+	elseif rarityId == "Epic" then rarityText = "ЭПИЧЕСКИЙ"
+	elseif rarityId == "Legendary" then rarityText = "ЛЕГЕНДАРНЫЙ"
+	elseif rarityId == "Secret" then rarityText = "СЕКРЕТНЫЙ"
+	end
+
+	rarityLabel.Text = "[" .. rarityText .. "]"
+	rarityLabel.TextStrokeTransparency = 0
+	rarityLabel.TextStrokeColor3 = Color3.fromRGB(13, 14, 26)
+	rarityLabel.Parent = container
+
+	-- Добавляем легкое свечение частицами
+	local attachment = Instance.new("Attachment")
+	attachment.Parent = ghostPart
+
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Texture = "rbxassetid://292289454"
+	emitter.Color = ColorSequence.new(info.Color)
+	emitter.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.6),
+		NumberSequenceKeypoint.new(1, 0)
+	})
+	emitter.Lifetime = NumberRange.new(0.8, 1.4)
+	emitter.Rate = 12
+	emitter.Speed = NumberRange.new(1, 3)
+	emitter.SpreadAngle = Vector2.new(0, 360)
+	emitter.Parent = attachment
+
 	-- Ставим на начальную позицию
 	local basePos = entity:GetAttribute("Position")
 	if basePos then
