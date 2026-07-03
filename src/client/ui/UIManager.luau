@@ -26,6 +26,21 @@ local function init()
 		screenGui.Parent = playerGui
 	end
 
+	-- Скрываем стандартные элементы CoreGui (PlayerList, Backpack) для полной кастомизации
+	local StarterGui = game:GetService("StarterGui")
+	task.spawn(function()
+		local retries = 0
+		while retries < 10 do
+			local success = pcall(function()
+				StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+				StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+			end)
+			if success then break end
+			task.wait(0.5)
+			retries = retries + 1
+		end
+	end)
+	
 	-- Инициализируем систему тостов
 	Toast.init(screenGui)
 
