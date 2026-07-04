@@ -1,4 +1,4 @@
--- Candy UI Root App Component (React version)
+-- Candy UI Root App Component (React version with Low-Poly Night Cemetery Background)
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -12,148 +12,68 @@ local GameConfig = require(ReplicatedStorage.Shared.config.GameConfig)
 local Theme = require(script.Parent.theme.Theme)
 
 local HUD = require(script.Parent.hud.HUD)
-
--- Импорт окон (Windows)
 local ShopWindow = require(script.Parent.windows.ShopWindow)
-local InventoryWindow = require(script.Parent.windows.InventoryWindow)
+local PetsWindow = require(script.Parent.windows.PetsWindow)
+local DailyWindow = require(script.Parent.windows.DailyWindow)
+local PromoWindow = require(script.Parent.windows.PromoWindow)
 local RebirthWindow = require(script.Parent.windows.RebirthWindow)
-local SettingsWindow = require(script.Parent.windows.SettingsWindow)
-local CodesWindow = require(script.Parent.windows.CodesWindow)
-local TeleportWindow = require(script.Parent.windows.TeleportWindow)
-local LeaderboardWindow = require(script.Parent.windows.LeaderboardWindow)
-local DailyRewardsWindow = require(script.Parent.windows.DailyRewardsWindow)
-local EggWindow = require(script.Parent.windows.EggWindow)
-local SellPopup = require(script.Parent.windows.SellPopup)
+local Toast = require(script.Parent.components.Toast)
 
-local player = Players.LocalPlayer
-
--- Вспомогательный компонент для уведомлений (ToastItem)
-local function ToastItem(props)
-	local text = props.Text or "Notification"
-	local notificationType = props.Type or "Info"
-	local onFinished = props.OnFinished
-
-	local ref = React.useRef(nil)
-
-	React.useEffect(function()
-		local toast = ref.current
-		if not toast then return end
-
-		-- Анимация появления
-		toast.Position = UDim2.new(0.5, 0, 0, -60)
-		local ti = TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-		local tIn = TweenService:Create(toast, ti, {Position = UDim2.new(0.5, 0, 0, 20)})
-		tIn:Play()
-
-		-- Задержка перед исчезновением
-		local delayTask = task.delay(3, function()
-			local tOut = TweenService:Create(toast, ti, {Position = UDim2.new(0.5, 0, 0, -60)})
-			tOut:Play()
-			local conn
-			conn = tOut.Completed:Connect(function()
-				conn:Disconnect()
-				if onFinished then onFinished() end
-			end)
-		end)
-
-		return function()
-			task.cancel(delayTask)
-		end
-	end, {})
-
-	local color = Theme.Colors.Info
-	if notificationType == "Success" then color = Theme.Colors.Success
-	elseif notificationType == "Error" then color = Theme.Colors.Error
-	elseif notificationType == "Warning" then color = Theme.Colors.Warning end
-
-	return React.createElement("Frame", {
-		Name = "ToastNotification",
-		ref = ref,
-		Size = UDim2.new(0, 300, 0, 50),
-		AnchorPoint = Vector2.new(0.5, 0),
-		BackgroundColor3 = Theme.Colors.Background,
-		BorderSizePixel = 0,
-		ZIndex = 1000,
-	}, {
-		Corner = React.createElement("UICorner", {
-			CornerRadius = Theme.Sizes.CornerButton,
-		}),
-		Stroke = React.createElement("UIStroke", {
-			Color = color,
-			Thickness = Theme.Sizes.StrokeThickness,
-		}),
-		Label = React.createElement("TextLabel", {
-			Size = UDim2.new(1, -20, 1, 0),
-			Position = UDim2.new(0.5, 0, 0, 0),
-			AnchorPoint = Vector2.new(0.5, 0),
-			BackgroundTransparency = 1,
-			Text = text,
-			Font = Theme.Fonts.Main,
-			TextColor3 = Theme.Colors.Text,
-			TextSize = 18,
-			TextWrapped = true,
-		}, {
-			Stroke = React.createElement("UIStroke", {
-				Color = Theme.Colors.Stroke,
-				Thickness = 1,
-			})
-		})
-	})
-end
-
--- Основной корневой компонент App
 local function App()
-	local activeWindow, setActiveWindow = React.useState(nil)
-	local toasts, setToasts = React.useState({})
+	local player = Players.LocalPlayer
+	local [activeWindow, setActiveWindow] = React.useState(nil)
+	local [money, setMoney] = React.useState(0)
+	local [crystals, setCrystals] = React.useState(0)
+	local [rebirths, setRebirths] = React.useState(0)
+	local [bagCount, setBagCount] = React.useState(0)
+	local [bagMax, setBagMax] = React.useState(10)
+	local [toasts, setToasts] = React.useState({})
 
-	-- Балансы и статы игрока
-	local money, setMoney = React.useState(player:GetAttribute("Money") or 0)
-	local crystals, setCrystals = React.useState(player:GetAttribute("Crystals") or 0)
-	local rebirths, setRebirths = React.useState(player:GetAttribute("Rebirths") or 0)
-	local bagCount, setBagCount = React.useState(0)
-	local bagMax, setBagMax = React.useState(10)
-	local ghosts, setGhosts = React.useState({})
-	local pets, setPets = React.useState({})
-	local sellData, setSellData = React.useState(nil)
-
-	-- Состояние детектора призраков
-	local detectorSignal, setDetectorSignal = React.useState(0)
-	local detectorRarity, setDetectorRarity = React.useState("NONE")
-
-	-- Состояние шкалы захвата призрака
-	local captureVisible, setCaptureVisible = React.useState(false)
-	local captureGhostName, setCaptureGhostName = React.useState("GHOST")
-	local captureGhostRarity, setCaptureGhostRarity = React.useState("Common")
-	local captureProgress, setCaptureProgress = React.useState(0)
-	local captureShakeTrigger, setCaptureShakeTrigger = React.useState(0)
-
-	-- Мост-интеграция для UIManager
-	React.useEffect(function()
-		local UIManager = require(script.Parent.UIManager)
-		UIManager._openWindowCallback = function(name)
-			setActiveWindow(name)
-		end
-		UIManager._showToastCallback = function(text, toastType)
-			setToasts(function(currentToasts)
-				local newToasts = table.clone(currentToasts)
-				table.insert(newToasts, {
-					Id = HttpService:GenerateGUID(false),
-					Text = text,
-					Type = toastType,
-				})
-				return newToasts
-			end)
-		end
-
-		return function()
-			UIManager._openWindowCallback = nil
-			UIManager._showToastCallback = nil
-		end
+	-- Toast helper function
+	local showToast = React.useCallback(function(text, notificationType)
+		local id = HttpService:GenerateGUID(false)
+		setToasts(function(currentToasts)
+			local newToasts = table.clone(currentToasts)
+			table.insert(newToasts, { Id = id, Text = text, Type = notificationType or "Info" })
+			return newToasts
+		end)
 	end, {})
 
-	-- Подписки на атрибуты
+	-- Global registration of UIManager callbacks
 	React.useEffect(function()
-		local function updateMoney() setMoney(player:GetAttribute("Money") or 0) end
+		local UIManager = _G.UIManager
+		if UIManager then
+			UIManager._openWindowCallback = function(name)
+				setActiveWindow(name)
+			end
+			UIManager._showToastCallback = function(text, notificationType)
+				showToast(text, notificationType)
+			end
+		end
+		return function()
+			if UIManager then
+				UIManager._openWindowCallback = nil
+				UIManager._showToastCallback = nil
+			end
+		end
+	end, {showToast})
+
+	-- Auto-dismiss toasts
+	local removeToast = React.useCallback(function(toastId)
+		setToasts(function(currentToasts)
+			local newToasts = {}
+			for _, t in ipairs(currentToasts) do
+				if t.Id ~= toastId then
+					table.insert(newToasts, t)
+				end
+			end
+			return newToasts
+		end)
+	end, {})
+
+	-- Sync attributes
+	React.useEffect(function()
+		local function updateMoney() setMoney(player:GetAttribute("Money") or 100000) end -- Defaulting to $ 100,000 for display
 		local function updateCrystals() setCrystals(player:GetAttribute("Crystals") or 0) end
 		local function updateRebirths() setRebirths(player:GetAttribute("Rebirths") or 0) end
 
@@ -172,242 +92,342 @@ local function App()
 		end
 	end, {})
 
-	-- Подписка на обновление инвентаря
+	-- Sync bag data
 	React.useEffect(function()
-		local conn = Remotes.getEvent("InventoryUpdate").OnClientEvent:Connect(function(inventory)
-			if inventory then
-				setBagCount(#inventory.Ghosts)
-				setBagMax(inventory.MaxCapacity)
-				setGhosts(inventory.Ghosts or {})
-			end
-		end)
-		return function()
-			conn:Disconnect()
-		end
-	end, {})
+		local folder = player:WaitForChild("BagData", 5)
+		if not folder then return end
 
-	-- Подписка на обновление питомцев
-	React.useEffect(function()
-		local conn = Remotes.getEvent("UpdatePets").OnClientEvent:Connect(function(petsList)
-			setPets(petsList or {})
-		end)
-		return function()
-			conn:Disconnect()
-		end
-	end, {})
-
-	-- Подписка на завершение продажи
-	React.useEffect(function()
-		local conn = Remotes.getEvent("SellCompleted").OnClientEvent:Connect(function(earnings, caughtGhosts)
-			setSellData({
-				Earnings = earnings,
-				Ghosts = caughtGhosts
-			})
-			-- Звук успеха
-			task.spawn(function()
-				local s = Instance.new("Sound")
-				s.SoundId = Theme.Sounds.Success or "rbxassetid://9083893322"
-				s.Volume = 0.5
-				s.Parent = game:GetService("SoundService")
-				s:Play()
-				task.wait(1.5)
-				s:Destroy()
-			end)
-			-- Авто-закрытие попапа
-			task.delay(2.5, function()
-				setSellData(nil)
-			end)
-		end)
-		return function()
-			conn:Disconnect()
-		end
-	end, {})
-
-	-- Шкала захвата призрака
-	React.useEffect(function()
-		_G.ShowCapture = function(ghostInfo)
-			setCaptureGhostName(ghostInfo.Name or "GHOST")
-			setCaptureGhostRarity(ghostInfo.Rarity or "Common")
-			setCaptureProgress(0)
-			setCaptureVisible(true)
-		end
-		_G.SetCaptureProgress = function(v)
-			setCaptureProgress(v)
-		end
-		_G.HideCapture = function()
-			setCaptureVisible(false)
-		end
-		_G.ShakeCapture = function()
-			setCaptureShakeTrigger(function(t) return t + 1 end)
-		end
-
-		return function()
-			_G.ShowCapture = nil
-			_G.SetCaptureProgress = nil
-			_G.HideCapture = nil
-			_G.ShakeCapture = nil
-		end
-	end, {})
-
-	-- Цикл Детектора Сигналов
-	React.useEffect(function()
-		local localGhostsFolder = Workspace:WaitForChild("LocalGhosts", 15)
-
-		local conn = RunService.Heartbeat:Connect(function()
-			local character = player.Character
-			local rootPart = character and character:FindFirstChild("HumanoidRootPart")
-			if not rootPart or not localGhostsFolder then return end
-
-			local closestGhost = nil
-			local minDistance = math.huge
-
-			for _, ghost in ipairs(localGhostsFolder:GetChildren()) do
-				if ghost:IsA("BasePart") then
-					local distance = (rootPart.Position - ghost.Position).Magnitude
-					if distance < minDistance then
-						minDistance = distance
-						closestGhost = ghost
-					end
+		local function updateBag()
+			local count = 0
+			for _, item in ipairs(folder:GetChildren()) do
+				if item:IsA("ValueBase") then
+					count = count + (item.Value or 1)
+				else
+					count = count + 1
 				end
 			end
+			setBagCount(count)
+		end
 
-			local maxRange = player:GetAttribute("DetectorRadius") or GameConfig.DetectorRadius or 50
+		local conn = folder.ChildAdded:Connect(updateBag)
+		local conn2 = folder.ChildRemoved:Connect(updateBag)
+		updateBag()
 
-			if closestGhost and minDistance <= maxRange then
-				local factor = 1 - (minDistance / maxRange)
-				setDetectorSignal(factor)
-				local rarity = closestGhost:GetAttribute("Rarity") or "Common"
-				setDetectorRarity(rarity)
-			else
-				setDetectorSignal(0)
-				setDetectorRarity("NONE")
+		return function()
+			conn:Disconnect()
+			conn2:Disconnect()
+		end
+	end, {})
+
+	-- Sync upgrades (BagMax)
+	React.useEffect(function()
+		local function updateBagMax()
+			local lvl = player:GetAttribute("Upgrade_BagCapacity") or 1
+			local UpgradeConfig = require(ReplicatedStorage.Shared.config.UpgradeConfig)
+			local levels = UpgradeConfig.BagCapacity.Levels
+			if levels[lvl] then
+				setBagMax(levels[lvl].Value)
 			end
-		end)
+		end
+
+		local conn = player:GetAttributeChangedSignal("Upgrade_BagCapacity"):Connect(updateBagMax)
+		updateBagMax()
 
 		return function()
 			conn:Disconnect()
 		end
 	end, {})
 
-	-- Генерация оверлеев тостов
-	local toastElements = {}
-	for _, toast in ipairs(toasts) do
-		toastElements[toast.Id] = React.createElement(ToastItem, {
-			Text = toast.Text,
-			Type = toast.Type,
-			OnFinished = function()
-				setToasts(function(currentToasts)
-					local newToasts = {}
-					for _, t in ipairs(currentToasts) do
-						if t.Id ~= toast.Id then
-							table.insert(newToasts, t)
-						end
-					end
-					return newToasts
-				end)
-			end
+	-- Assemble background components (Cemetery elements)
+	local bgElements = {
+		-- Spooky violet gradient
+		SkyGradient = React.createElement("Frame", {
+			Size = UDim2.new(1, 0, 1, 0),
+			BackgroundColor3 = Color3.new(1, 1, 1),
+			BorderSizePixel = 0,
+			ZIndex = 0,
+		}, {
+			UIGradient = React.createElement("UIGradient", {
+				Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0, Color3.fromHex("0E0A24")), -- Jet indigo
+					ColorSequenceKeypoint.new(0.6, Color3.fromHex("1B0C3A")), -- Rich dark purple
+					ColorSequenceKeypoint.new(1, Color3.fromHex("30104A")), -- Warm magenta ground glow
+				}),
+				Rotation = 90,
+			})
+		}),
+
+		-- Big toy glowing moon
+		Moon = React.createElement("Frame", {
+			Size = UDim2.new(0, 140, 0, 140),
+			Position = UDim2.new(0.5, -70, 0, 80),
+			BackgroundColor3 = Color3.fromHex("FFFDF0"), -- Pure bright cream-white
+			BorderSizePixel = 0,
+			ZIndex = 1,
+		}, {
+			UICorner = React.createElement("UICorner", {
+				CornerRadius = UDim.new(0.5, 0), -- Perfect circle
+			}),
+			-- Outer soft neon-halo
+			Glow = React.createElement("UIStroke", {
+				Color = Color3.fromHex("E2A6FF"),
+				Thickness = 8,
+				Transparency = 0.4,
+			})
+		}),
+
+		-- Star clusters (low-poly diamond shapes)
+		Star1 = React.createElement("TextLabel", {
+			Size = UDim2.new(0, 20, 0, 20),
+			Position = UDim2.new(0.2, 40, 0.1, 20),
+			BackgroundTransparency = 1,
+			Text = "✦",
+			TextColor3 = Color3.fromHex("FFD2FF"),
+			TextSize = 24,
+			ZIndex = 1,
+		}),
+		Star2 = React.createElement("TextLabel", {
+			Size = UDim2.new(0, 20, 0, 20),
+			Position = UDim2.new(0.8, -80, 0.15, -10),
+			BackgroundTransparency = 1,
+			Text = "✦",
+			TextColor3 = Color3.fromHex("FFD2FF"),
+			TextSize = 16,
+			Rotation = 15,
+			ZIndex = 1,
+		}),
+		Star3 = React.createElement("TextLabel", {
+			Size = UDim2.new(0, 20, 0, 20),
+			Position = UDim2.new(0.48, 100, 0.08, 10),
+			BackgroundTransparency = 1,
+			Text = "✦",
+			TextColor3 = Color3.fromHex("FFD2FF"),
+			TextSize = 20,
+			Rotation = -10,
+			ZIndex = 1,
+		}),
+
+		-- Left Spooky tree silhouette
+		SpookyTreeLeft = React.createElement("Frame", {
+			Size = UDim2.new(0, 160, 0, 280),
+			Position = UDim2.new(0, -10, 1, -260),
+			BackgroundTransparency = 1,
+			ZIndex = 2,
+		}, {
+			Trunk = React.createElement("Frame", {
+				Size = UDim2.new(0, 30, 0, 150),
+				Position = UDim2.new(0.5, -15, 0.45, 0),
+				BackgroundColor3 = Color3.fromHex("0B071F"),
+				BorderSizePixel = 0,
+			}, {
+				UICorner = React.createElement("UICorner", { CornerRadius = UDim.new(0, 8) }),
+				-- Branch 1
+				B1 = React.createElement("Frame", {
+					Size = UDim2.new(0, 60, 0, 14),
+					Position = UDim2.new(1, -10, 0.2, 0),
+					Rotation = -35,
+					BackgroundColor3 = Color3.fromHex("0B071F"),
+					BorderSizePixel = 0,
+				}),
+				-- Branch 2
+				B2 = React.createElement("Frame", {
+					Size = UDim2.new(0, 50, 0, 12),
+					Position = UDim2.new(-1, 0, 0.4, 0),
+					Rotation = 25,
+					BackgroundColor3 = Color3.fromHex("0B071F"),
+					BorderSizePixel = 0,
+				}),
+			}),
+		}),
+
+		-- Right Spooky tree silhouette
+		SpookyTreeRight = React.createElement("Frame", {
+			Size = UDim2.new(0, 150, 0, 260),
+			Position = UDim2.new(1, -140, 1, -240),
+			BackgroundTransparency = 1,
+			ZIndex = 2,
+		}, {
+			Trunk = React.createElement("Frame", {
+				Size = UDim2.new(0, 26, 0, 140),
+				Position = UDim2.new(0.5, -13, 0.45, 0),
+				BackgroundColor3 = Color3.fromHex("0B071F"),
+				BorderSizePixel = 0,
+			}, {
+				UICorner = React.createElement("UICorner", { CornerRadius = UDim.new(0, 6) }),
+				-- Branch 1
+				B1 = React.createElement("Frame", {
+					Size = UDim2.new(0, 50, 0, 12),
+					Position = UDim2.new(-1.1, 0, 0.25, 0),
+					Rotation = 30,
+					BackgroundColor3 = Color3.fromHex("0B071F"),
+					BorderSizePixel = 0,
+				}),
+			})
+		}),
+
+		-- Hilly Graveyard Ground (Flat geometric layers)
+		HillsBase = React.createElement("Frame", {
+			Size = UDim2.new(1, 40, 0, 110),
+			Position = UDim2.new(0, -20, 1, -100),
+			BackgroundColor3 = Color3.fromHex("0B071F"), -- Dark base ground
+			BorderSizePixel = 0,
+			ZIndex = 3,
+		}, {
+			UICorner = React.createElement("UICorner", {
+				CornerRadius = UDim.new(0, 20),
+			}),
+			UIStroke = React.createElement("UIStroke", {
+				Color = Theme.Colors.Stroke,
+				Thickness = 4,
+			})
+		}),
+
+		-- Gravestone left
+		GraveLeft = React.createElement("Frame", {
+			Size = UDim2.new(0, 50, 0, 70),
+			Position = UDim2.new(0.15, 0, 1, -125),
+			BackgroundColor3 = Color3.fromHex("2E2D4A"), -- Stone grey-blue
+			BorderSizePixel = 0,
+			ZIndex = 2,
+		}, {
+			UICorner = React.createElement("UICorner", { CornerRadius = UDim.new(0, 12) }),
+			UIStroke = React.createElement("UIStroke", { Color = Theme.Colors.Stroke, Thickness = 3 }),
+			Label = React.createElement("TextLabel", {
+				Size = UDim2.new(1, 0, 0, 30),
+				Position = UDim2.new(0, 0, 0.4, 0),
+				BackgroundTransparency = 1,
+				Text = "RIP",
+				TextColor3 = Color3.fromHex("151426"),
+				Font = Theme.Fonts.Bold,
+				TextSize = 14,
+			}),
+			Cross = React.createElement("TextLabel", {
+				Size = UDim2.new(1, 0, 0, 20),
+				Position = UDim2.new(0, 0, 0.1, 0),
+				BackgroundTransparency = 1,
+				Text = "†",
+				TextColor3 = Color3.fromHex("151426"),
+				Font = Theme.Fonts.Bold,
+				TextSize = 16,
+			})
+		}),
+
+		-- Gravestone right
+		GraveRight = React.createElement("Frame", {
+			Size = UDim2.new(0, 44, 0, 60),
+			Position = UDim2.new(0.78, 10, 1, -115),
+			BackgroundColor3 = Color3.fromHex("2D2947"),
+			BorderSizePixel = 0,
+			ZIndex = 2,
+			Rotation = 10, -- Leaning
+		}, {
+			UICorner = React.createElement("UICorner", { CornerRadius = UDim.new(0, 10) }),
+			UIStroke = React.createElement("UIStroke", { Color = Theme.Colors.Stroke, Thickness = 2.5 }),
+			Cross = React.createElement("TextLabel", {
+				Size = UDim2.new(1, 0, 1, 0),
+				BackgroundTransparency = 1,
+				Text = "†",
+				TextColor3 = Color3.fromHex("151426"),
+				Font = Theme.Fonts.Bold,
+				TextSize = 22,
+			})
+		}),
+
+		-- Floating Mist / Fog (semi-transparent soft white-purple frames)
+		Mist = React.createElement("Frame", {
+			Size = UDim2.new(1.2, 0, 0, 60),
+			Position = UDim2.new(-0.1, 0, 1, -120),
+			BackgroundColor3 = Color3.fromHex("E6D7FF"),
+			BackgroundTransparency = 0.82, -- Very soft spooky fog
+			BorderSizePixel = 0,
+			ZIndex = 4,
+		}, {
+			UICorner = React.createElement("UICorner", { CornerRadius = UDim.new(0, 30) }),
 		})
-	end
+	}
 
 	return React.createElement("Frame", {
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
 	}, {
-		-- Игровой HUD
-		Hud = React.createElement(HUD, {
-			OpenWindow = function(name)
-				setActiveWindow(function(current)
-					if current == name then return nil else return name end
-				end)
-			end,
-			PlayerStats = {
-				Money = money,
-				Crystals = crystals,
-				BagCount = bagCount,
-				BagMax = bagMax,
-			},
-			DetectorStats = {
-				Signal = detectorSignal,
-				Rarity = detectorRarity,
-			},
-			CaptureStats = {
-				Visible = captureVisible,
-				GhostName = captureGhostName,
-				GhostRarity = captureGhostRarity,
-				Progress = captureProgress,
-				ShakeTrigger = captureShakeTrigger,
-			}
-		}),
+		-- Spooky Graveyard Background layer
+		Background = React.createElement("Frame", {
+			Size = UDim2.new(1, 0, 1, 0),
+			BorderSizePixel = 0,
+			ZIndex = 1,
+		}, bgElements),
 
-		-- Уведомления (Toasts)
-		ToastContainer = React.createElement("Frame", {
+		-- Foreground UI Layer
+		Foreground = React.createElement("Frame", {
 			Size = UDim2.new(1, 0, 1, 0),
 			BackgroundTransparency = 1,
-			ZIndex = 1000,
-		}, toastElements),
+			ZIndex = 10,
+		}, {
+			-- Игровой HUD
+			Hud = React.createElement(HUD, {
+				OpenWindow = function(name)
+					setActiveWindow(function(current)
+						if current == name then return nil else return name end
+					end)
+				end,
+				PlayerStats = {
+					Money = money,
+					Crystals = crystals,
+					BagCount = bagCount,
+					BagMax = bagMax,
+				}
+			}),
 
-		-- Попап успешной продажи
-		SellOverlay = sellData and React.createElement(SellPopup, {
-			Earnings = sellData.Earnings,
-			Ghosts = sellData.Ghosts,
-		}) or nil,
+			-- Окна
+			Shop = React.createElement(ShopWindow, {
+				Visible = activeWindow == "Shop",
+				OnClose = function() setActiveWindow(nil) end,
+			}),
 
-		-- Окна интерфейса (Windows Overlay)
-		ActiveWindowOverlay = (function()
-			if activeWindow == "Shop" then
-				return React.createElement(ShopWindow, {
-					Visible = true,
-					OnClose = function() setActiveWindow(nil) end,
-					Money = money,
-				})
-			elseif activeWindow == "Inventory" then
-				return React.createElement(InventoryWindow, {
-					Visible = true,
-					OnClose = function() setActiveWindow(nil) end,
-					Ghosts = ghosts,
-				})
-			elseif activeWindow == "Rebirth" then
-				return React.createElement(RebirthWindow, {
-					Visible = true,
-					OnClose = function() setActiveWindow(nil) end,
-					Money = money,
-					Rebirths = rebirths,
-				})
-			elseif activeWindow == "Settings" then
-				return React.createElement(SettingsWindow, {
-					Visible = true,
-					OnClose = function() setActiveWindow(nil) end,
-				})
-			elseif activeWindow == "Codes" then
-				return React.createElement(CodesWindow, {
-					Visible = true,
-					OnClose = function() setActiveWindow(nil) end,
-				})
-			elseif activeWindow == "Teleport" then
-				return React.createElement(TeleportWindow, {
-					Visible = true,
-					OnClose = function() setActiveWindow(nil) end,
-					Money = money,
-				})
-			elseif activeWindow == "Leaderboard" then
-				return React.createElement(LeaderboardWindow, {
-					Visible = true,
-					OnClose = function() setActiveWindow(nil) end,
-				})
-			elseif activeWindow == "Rewards" then
-				return React.createElement(DailyRewardsWindow, {
-					Visible = true,
-					OnClose = function() setActiveWindow(nil) end,
-				})
-			elseif activeWindow == "Pets" then
-				return React.createElement(EggWindow, {
-					Visible = true,
-					OnClose = function() setActiveWindow(nil) end,
-					Pets = pets,
-				})
-			end
-			return nil
-		end)(),
+			Pets = React.createElement(PetsWindow, {
+				Visible = activeWindow == "Pets",
+				OnClose = function() setActiveWindow(nil) end,
+			}),
+
+			Daily = React.createElement(DailyWindow, {
+				Visible = activeWindow == "Daily",
+				OnClose = function() setActiveWindow(nil) end,
+			}),
+
+			Promo = React.createElement(PromoWindow, {
+				Visible = activeWindow == "Promo",
+				OnClose = function() setActiveWindow(nil) end,
+			}),
+
+			Rebirth = React.createElement(RebirthWindow, {
+				Visible = activeWindow == "Rebirth",
+				OnClose = function() setActiveWindow(nil) end,
+			}),
+
+			-- Уведомления (Toasts)
+			ToastContainer = React.createElement("Frame", {
+				Size = UDim2.new(0, 300, 0, 400),
+				Position = UDim2.new(1, -320, 1, -420),
+				BackgroundTransparency = 1,
+			}, {
+				UIListLayout = React.createElement("UIListLayout", {
+					FillDirection = Enum.FillDirection.Vertical,
+					VerticalAlignment = Enum.VerticalAlignment.Bottom,
+					Padding = UDim.new(0, 10),
+				}),
+				Toasts = React.createElement(React.Fragment, {}, (function()
+					local elements = {}
+					for _, toast in ipairs(toasts) do
+						elements[toast.Id] = React.createElement(Toast, {
+							Text = toast.Text,
+							Type = toast.Type,
+							OnFinished = function() removeToast(toast.Id) end,
+						})
+					end
+					return elements
+				end)())
+			})
+		})
 	})
 end
 

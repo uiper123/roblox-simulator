@@ -1,87 +1,98 @@
--- Candy Panel Component (React version)
+-- Candy Panel Component (Vibrant Toy-Like Mobile UI Style)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Theme = require(script.Parent.Parent.theme.Theme)
 local CurrencyChip = require(script.Parent.Parent.components.CurrencyChip)
+local Button = require(script.Parent.Parent.components.Button)
 
 local function Panel(props)
 	local size = props.Size or UDim2.new(0, 400, 0, 300)
 	local position = props.Position or UDim2.new(0.5, 0, 0.5, 0)
 	local anchorPoint = props.AnchorPoint or Vector2.new(0.5, 0.5)
-	local title = props.Title or ""
-	local showBalance = props.ShowBalance or false
-	local balanceValue = props.BalanceValue or 0
-	local visible = props.Visible ~= false
+	local title = props.Title or "WINDOW"
+	local onClose = props.OnClose
+	local visible = props.Visible
+	local children = props[React.Children]
 
-	if not visible then return nil end
+	if visible == false then return nil end
 
 	return React.createElement("Frame", {
-		Name = "CandyPanel_" .. tostring(title),
 		Size = size,
 		Position = position,
 		AnchorPoint = anchorPoint,
 		BackgroundColor3 = Theme.Colors.Panel,
-		BackgroundTransparency = 1 - (Theme.Colors.PanelOpacity or 0.9),
+		BackgroundTransparency = 0.05, -- Rich fully-colored backing
 		BorderSizePixel = 0,
-		ZIndex = props.ZIndex or 10,
 	}, {
-		Corner = React.createElement("UICorner", {
-			CornerRadius = Theme.Sizes.CornerPanel or UDim.new(0, 16),
+		-- Heavy Rounded corners & outlines for Toy design
+		UICorner = React.createElement("UICorner", {
+			CornerRadius = Theme.Sizes.CornerRadius,
 		}),
-		Stroke = React.createElement("UIStroke", {
+		UIStroke = React.createElement("UIStroke", {
 			Color = Theme.Colors.Stroke,
-			Thickness = 3,
+			Thickness = Theme.Sizes.StrokeThickness,
+			ApplyStrokeToMode = Enum.ApplyStrokeToMode.Border,
 		}),
 
+		-- Window Header Container
 		Header = React.createElement("Frame", {
-			Name = "Header",
-			Size = UDim2.new(1, 0, 0, 60),
+			Size = UDim2.new(1, 0, 0, 55),
+			Position = UDim2.new(0, 0, 0, -25), -- Slightly floating banner style
 			BackgroundTransparency = 1,
+			ZIndex = 3,
 		}, {
-			TitleLabel = React.createElement("TextLabel", {
-				Size = UDim2.new(1, 0, 1, 0),
-				BackgroundTransparency = 1,
-				Text = title:upper(),
-				Font = Theme.Fonts.Title,
-				TextSize = 28,
-				TextColor3 = Theme.Colors.Text,
+			-- Toy Banner Background
+			Banner = React.createElement("Frame", {
+				Size = UDim2.new(0.7, 0, 1, 0),
+				Position = UDim2.new(0.15, 0, 0, 0),
+				BackgroundColor3 = Color3.fromHex("F1C40F"), -- Sunny yellow banner
+				BorderSizePixel = 0,
+			}, {
+				UICorner = React.createElement("UICorner", {
+					CornerRadius = Theme.Sizes.CornerRadius,
+				}),
+				UIStroke = React.createElement("UIStroke", {
+					Color = Theme.Colors.Stroke,
+					Thickness = Theme.Sizes.StrokeThickness,
+					ApplyStrokeToMode = Enum.ApplyStrokeToMode.Border,
+				}),
+				
+				-- Title Text
+				Label = React.createElement("TextLabel", {
+					Size = UDim2.new(1, 0, 1, 0),
+					BackgroundTransparency = 1,
+					Text = string.upper(title),
+					TextColor3 = Theme.Colors.Text,
+					Font = Theme.Fonts.Title,
+					TextSize = 22,
+					TextStrokeColor3 = Theme.Colors.Stroke,
+					TextStrokeTransparency = 0,
+				})
 			}),
 
-			CloseButton = React.createElement("TextButton", {
-				Name = "CloseButton",
-				Size = UDim2.new(0, 32, 0, 32),
-				Position = UDim2.new(1, -15, 0, 15),
-				AnchorPoint = Vector2.new(1, 0),
-				BackgroundColor3 = Theme.Colors.Error or Color3.fromRGB(255, 63, 75),
-				Text = "X",
-				Font = Theme.Fonts.Bold,
-				TextColor3 = Theme.Colors.Text,
-
-				[React.Event.Activated] = function()
-					if props.OnClose then props.OnClose() end
-				end,
+			-- Toy close button
+			CloseBtn = onClose and React.createElement("Frame", {
+				Size = UDim2.new(0, 45, 0, 45),
+				Position = UDim2.new(1, -25, 0, 5),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				BackgroundTransparency = 1,
 			}, {
-				Corner = React.createElement("UICorner", {
-					CornerRadius = UDim.new(0, 8),
+				Btn = React.createElement(Button, {
+					Text = "❌",
+					Size = UDim2.new(1, 0, 1, 0),
+					Color = Color3.fromHex("E74C3C"), -- Red toy close
+					OnClick = onClose,
 				})
-			})
+			}) or nil,
 		}),
 
-		BalanceChip = showBalance and React.createElement(CurrencyChip, {
-			CurrencyType = "Money",
-			Value = balanceValue,
-			Position = UDim2.new(0.5, -75, 0, 60),
-		}) or nil,
-
+		-- Content Area
 		Content = React.createElement("Frame", {
-			Name = "Content",
-			Size = UDim2.new(1, -20, 1, -80),
-			Position = UDim2.new(0.5, 0, 0, 70),
-			AnchorPoint = Vector2.new(0.5, 0),
+			Size = UDim2.new(1, -30, 1, -65),
+			Position = UDim2.new(0, 15, 0, 45),
 			BackgroundTransparency = 1,
-		}, props.children)
+		}, children)
 	})
 end
 
 return Panel
-

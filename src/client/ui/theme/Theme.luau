@@ -1,43 +1,39 @@
--- UI Theme & Design System (Candy 3D Style)
+-- UI Theme & Design System (Vibrant Toy-Like Mobile UI Style)
 local Theme = {}
+
 Theme.Colors = {
-	Background = Color3.fromHex("12131F"),
-	BackgroundSecondary = Color3.fromHex("232544"),
-	Panel = Color3.fromHex("232544"),
-	PanelOpacity = 0.92,
-	Success = Color3.fromHex("3AE374"),
-	Error = Color3.fromHex("FF3F4B"),
-	Warning = Color3.fromHex("FFC048"),
-	Info = Color3.fromHex("00E5FF"),
-	Accent = Color3.fromHex("7B2FF7"),
+	-- Spooky yet vibrant night cemetery background colors
+	Background = Color3.fromHex("0E0A24"), -- Deep purple-indigo
+	BackgroundSecondary = Color3.fromHex("1E1540"), -- Spooky medium indigo
+	Panel = Color3.fromHex("2E205D"), -- Rich neon-indigo for window panels
+	PanelOpacity = 0.95,
+	
+	-- Vibrant toy-like status colors
+	Success = Color3.fromHex("2ECC71"), -- Bright green
+	Error = Color3.fromHex("E74C3C"), -- Candy red
+	Warning = Color3.fromHex("F1C40F"), -- Bright yellow
+	Info = Color3.fromHex("3498DB"), -- Soft blue
+	Accent = Color3.fromHex("E056FD"), -- Electric neon magenta-purple
+	
+	-- High contrast crisp text
 	Text = Color3.fromHex("FFFFFF"),
-	TextSecondary = Color3.fromHex("A0A0B8"),
-	Stroke = Color3.fromHex("14141E"),
-	White = Color3.new(1, 1, 1),
+	TextSecondary = Color3.fromHex("BCC8FC"), -- Soft lavender-blue
+	Stroke = Color3.fromHex("0E0720"), -- Deep dark outline for comic / toy effect
+	
+	-- Bright neon green / yellow money styles
+	MoneyGreen = Color3.fromHex("2ECC71"),
+	NeonRebirth = Color3.fromHex("D800FF"), -- Purple neon lightning
 }
+
 Theme.Fonts = {
-	Main = Enum.Font.FredokaOne,
-	Secondary = Enum.Font.GothamMedium,
-	Title = Enum.Font.FredokaOne,
-	Body = Enum.Font.GothamMedium,
+	Regular = Enum.Font.FredokaOne, -- Clean, toy-like round font
 	Bold = Enum.Font.FredokaOne,
+	Title = Enum.Font.FredokaOne,
 }
+
 Theme.Sizes = {
-	CornerRadius = UDim.new(0, 12),
-	CornerButton = UDim.new(0, 10),
-	StrokeThickness = 2,
+	CornerRadius = UDim.new(0, 14), -- Rounded cartoonish corners
+	StrokeThickness = 3.5, -- Chunky outlines
 }
-Theme.Sounds = {
-	Click = "rbxassetid://8214392737",
-	Success = "rbxassetid://6518811702",
-	Error = "rbxassetid://9061140085",
-}
-Theme.RarityColors = {
-	Common = Color3.fromHex("b2bec3"),
-	Uncommon = Color3.fromHex("55efc4"),
-	Rare = Color3.fromHex("74b9ff"),
-	Epic = Color3.fromHex("a29bfe"),
-	Legendary = Color3.fromHex("fdcb6e"),
-	Mythical = Color3.fromHex("ff7675")
-}
+
 return Theme

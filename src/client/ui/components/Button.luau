@@ -17,91 +17,117 @@ end
 
 local function Button(props)
 	local text = props.Text or "BUTTON"
-	local baseColor = props.Color or Theme.Colors.Accent
-	local size = props.Size or UDim2.new(0, 160, 0, 50)
+	local size = props.Size or UDim2.new(0, 200, 0, 50)
 	local position = props.Position or UDim2.new(0, 0, 0, 0)
-	local enabled = props.Enabled ~= false
-	local textScale = props.TextScale ~= false
-	local textSize = props.TextSize or 18
+	local anchorPoint = props.AnchorPoint or Vector2.new(0, 0)
+	local onClick = props.OnClick
+	local color = props.Color or Theme.Colors.Accent
 	local layoutOrder = props.LayoutOrder
+	local neon = props.Neon or false
 
+	local isHovered, setHovered = React.useState(false)
 	local isPressed, setPressed = React.useState(false)
-	
-	local buttonDepth = Theme.Sizes.ButtonDepth or 4
-	local clickDepth = buttonDepth / 2
 
-	local facePosition = isPressed and UDim2.new(0, 0, 0, clickDepth) or UDim2.new(0, 0, 0, 0)
-	local faceColor = enabled and baseColor or Color3.fromRGB(150, 150, 150)
+	-- Multi-layered "Plastic 3D Button" style
+	-- Shadow layer (dark base) & face layer (slid down on press)
+	local faceColor = color
+	if isPressed then
+		faceColor = color:Lerp(Color3.new(0, 0, 0), 0.15)
+	elseif isHovered then
+		faceColor = color:Lerp(Color3.new(1, 1, 1), 0.1)
+	end
+
+	local shadowColor = color:Lerp(Color3.new(0, 0, 0), 0.4)
+	local strokeColor = Theme.Colors.Stroke
+
+	-- Bright pinkish/purple neon glow if neon = true
+	local neonColorSeq = nil
+	if neon then
+		faceColor = Color3.fromHex("B900FF") -- Purple-neon base
+		shadowColor = Color3.fromHex("540080")
+		neonColorSeq = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.fromHex("D800FF")),
+			ColorSequenceKeypoint.new(1, Color3.fromHex("FF0077"))
+		})
+	end
 
 	return React.createElement("Frame", {
-		Name = "CandyButton_" .. text,
 		Size = size,
 		Position = position,
+		AnchorPoint = anchorPoint,
 		BackgroundTransparency = 1,
 		LayoutOrder = layoutOrder,
 	}, {
-		Shadow = enabled and React.createElement("Frame", {
-			Name = "Shadow",
-			Size = UDim2.new(1, 0, 1, 0),
-			Position = UDim2.new(0, 0, 0, buttonDepth),
-			BackgroundColor3 = Theme.Colors.Stroke,
+		-- Shadow base
+		Shadow = React.createElement("Frame", {
+			Size = UDim2.new(1, 0, 1, -4),
+			Position = UDim2.new(0, 0, 0, 4),
+			BackgroundColor3 = shadowColor,
 			BorderSizePixel = 0,
 		}, {
-			Corner = React.createElement("UICorner", {
-				CornerRadius = Theme.Sizes.CornerButton,
-			})
-		}) or nil,
-
-		Face = React.createElement("TextButton", {
-			Name = "ButtonTop",
-			Size = UDim2.new(1, 0, 1, 0),
-			Position = facePosition,
-			BackgroundColor3 = faceColor,
-			AutoButtonColor = false,
-			Text = text,
-			Font = Theme.Fonts.Title,
-			TextSize = textSize,
-			TextScaled = textScale,
-			TextColor3 = Theme.Colors.Text,
-			BorderSizePixel = 0,
-
-			[React.Event.MouseButton1Down] = function()
-				if not enabled then return end
-				setPressed(true)
-				playSound(Theme.Sounds.Click)
-			end,
-
-			[React.Event.MouseButton1Up] = function()
-				setPressed(false)
-			end,
-
-			[React.Event.MouseLeave] = function()
-				setPressed(false)
-			end,
-
-			[React.Event.Activated] = function()
-				if not enabled then return end
-				if props.OnClick then props.OnClick() end
-			end,
-		}, {
-			Corner = React.createElement("UICorner", {
-				CornerRadius = Theme.Sizes.CornerButton,
+			UICorner = React.createElement("UICorner", {
+				CornerRadius = Theme.Sizes.CornerRadius,
 			}),
-			Stroke = React.createElement("UIStroke", {
-				Color = Theme.Colors.Stroke,
+			UIStroke = React.createElement("UIStroke", {
+				Color = strokeColor,
 				Thickness = Theme.Sizes.StrokeThickness,
-				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+				ApplyStrokeToMode = Enum.ApplyStrokeToMode.Border,
+			})
+		}),
+
+		-- Sliding Face
+		Face = React.createElement("ImageButton", {
+			Size = UDim2.new(1, 0, 1, -4),
+			Position = isPressed and UDim2.new(0, 0, 0, 4) or UDim2.new(0, 0, 0, 0),
+			BackgroundColor3 = neon and Color3.new(1, 1, 1) or faceColor,
+			BorderSizePixel = 0,
+			AutoButtonColor = false,
+			
+			[React.Event.MouseEnter] = function()
+				setHovered(true)
+				playSound("rbxassetid://6894541724") -- Pop hover sound
+			end,
+			[React.Event.MouseLeave] = function()
+				setHovered(false)
+				setPressed(false)
+			end,
+			[React.Event.MouseButton1Down] = function()
+				setPressed(true)
+				playSound("rbxassetid://6894541460") -- Click down sound
+			end,
+			[React.Event.MouseButton1Up] = function()
+				if isPressed then
+					setPressed(false)
+					if onClick then onClick() end
+				end
+			end,
+		}, {
+			UICorner = React.createElement("UICorner", {
+				CornerRadius = Theme.Sizes.CornerRadius,
 			}),
-			Gradient = React.createElement("UIGradient", {
-				Color = ColorSequence.new({
-					ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-					ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200))
-				}),
-				Rotation = 90,
+			UIStroke = React.createElement("UIStroke", {
+				Color = strokeColor,
+				Thickness = Theme.Sizes.StrokeThickness,
+				ApplyStrokeToMode = Enum.ApplyStrokeToMode.Border,
+			}),
+			-- Neon gradient if true
+			Gradient = neon and React.createElement("UIGradient", {
+				Color = neonColorSeq,
+				Rotation = 45,
+			}) or nil,
+			-- Label
+			Label = React.createElement("TextLabel", {
+				Size = UDim2.new(1, 0, 1, 0),
+				BackgroundTransparency = 1,
+				Text = text,
+				TextColor3 = Theme.Colors.Text,
+				Font = Theme.Fonts.Bold,
+				TextSize = 18,
+				TextStrokeColor3 = strokeColor,
+				TextStrokeTransparency = 0.1,
 			})
 		})
 	})
 end
 
 return Button
-
